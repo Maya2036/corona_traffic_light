@@ -1,10 +1,22 @@
 /*Traffic light to control the flow of people. Uses HC-SRO4 to trigger green light for people*/
+#define SENSOR 0 //
 
 //pin setup
+//if (SENSOR){
 #define ECHO2_PIN 2
 #define ECHO1_PIN 3
 #define TRIG2_PIN 4
 #define TRIG1_PIN 5
+//}
+
+//else {
+  #define SENSOR1_PIN 2
+  #define SENSOR2_PIN 3
+//}
+  
+
+
+
 #define Y2_PIN 6
 #define Y1_PIN 7
 #define GREEN1_PIN 8
@@ -12,15 +24,20 @@
 #define GREEN2_PIN 10
 #define RED2_PIN 11
 
+//int output_pin_list [9]={TRIG1_PIN, TRIG2_PIN, Y1_PIN, Y2_PIN, GREEN1_PIN, RED1_PIN, GREEN2_PIN, RED2_PIN};
+//if (!SENSOR){
+  int output_pin_list [7]={ Y1_PIN, Y2_PIN, GREEN1_PIN, RED1_PIN, GREEN2_PIN, RED2_PIN};
+//}
+
+
 //constants
-#define SPEED_OF_SOUND 0.0343 // (cm/microsec)
-#define TRIGGER_DISTANCE 25  // how close you need to be before button is triggered (cm)
-#define DELAY_TIME 5*1000 // how long time between red on one light to green on the other light (milliseconds)
-#define ON_TIME 10*1000 // how long period light should stay green after button is pressed (milliseconds)
+#define SPEED_OF_SOUND 0.0343  // (cm/microsec)
+
+#define TRIGGER_DISTANCE 10    // how close you need to be before button is triggered (cm)
+#define DELAY_TIME 1*1000      // how long time between red on one light to green on the other light (milliseconds)
+#define ON_TIME 3*1000        // how long period light should stay green after button is pressed (milliseconds)
 
 //variables
-//int button1_pressed=0;
-//int button2_pressed=0;
 
 /* -1  delay mode
  *  0  both red
@@ -41,15 +58,20 @@ unsigned long current_time;
 unsigned long button_pressed_time;
 
 
-int output_pin_list [9]={TRIG1_PIN, TRIG2_PIN, Y1_PIN, Y2_PIN, GREEN1_PIN, RED1_PIN, GREEN2_PIN, RED2_PIN};
 
 void setup() {
+
 
   Serial.begin(9600);
   
   // put your setup code here, to run once:
-  pinMode(ECHO1_PIN, INPUT);
-  pinMode(ECHO2_PIN, INPUT);
+ // if (SENSOR){
+  //pinMode(ECHO1_PIN, INPUT);
+  //pinMode(ECHO2_PIN, INPUT);}
+  //else {
+    pinMode(SENSOR1_PIN, INPUT);
+  pinMode(SENSOR2_PIN, INPUT);
+  //}
 
   for(int i: output_pin_list){
     pinMode(i, OUTPUT);
@@ -57,9 +79,11 @@ void setup() {
   }
   digitalWrite(RED1_PIN, HIGH);
   digitalWrite(RED2_PIN, HIGH);
+
+  
 }
 
-
+/*
 int distance(int sensor=1){
   //default read sensor 1.
   int trig=TRIG1_PIN;
@@ -82,11 +106,32 @@ int distance(int sensor=1){
   Serial.println(round((duration * SPEED_OF_SOUND)));
   return round((duration * SPEED_OF_SOUND) / 2);
 }
+*/
+
+bool object_detected(int sensor =1){
+  if (sensor == 1){
+    if (digitalRead(SENSOR1_PIN)==HIGH) {return 0;}
+    else {return 1;}
+  }
+  else{
+    if (digitalRead(SENSOR2_PIN==HIGH)) {return 0;}
+    else {return 1;}
+  }
+}
 
 
+bool check_1(){
+  //if (SENSOR){return distance(1)<TRIGGER_DISTANCE;}
+   {return object_detected(1);}
+}
+
+bool check_2(){
+  //if (SENSOR){return distance(2)<TRIGGER_DISTANCE;}
+   {return object_detected(2);}
+}
 void check_buttons(){
-  if (distance(1)<TRIGGER_DISTANCE){
-    //button1_pressed=true;
+  
+  if (digitalRead(SENSOR1_PIN)==LOW){
     if (button_state==0){
       button_state=1;
       digitalWrite(Y1_PIN, HIGH);
@@ -95,10 +140,11 @@ void check_buttons(){
       button_state=21;
       digitalWrite(Y1_PIN, HIGH);
     }
+   
    delay(200); 
+   
   }
-  if (distance(2)<TRIGGER_DISTANCE){
-    //button2_pressed=true;
+  if (digitalRead(SENSOR2_PIN)==LOW){
     if (button_state==0){
       button_state=2;
       digitalWrite(Y2_PIN, HIGH);
@@ -107,10 +153,11 @@ void check_buttons(){
       button_state=12;
       digitalWrite(Y2_PIN, HIGH);
     }
-  delay(200);
-  }
-  Serial.print("B: ");
-  Serial.print(button_state);
+   delay(200); 
+   
+   }
+  //Serial.print("B: ");
+  //Serial.print(button_state);
 }
 
 bool check_button1_state(){
@@ -159,9 +206,9 @@ bool check_button2_state(){
 void check_current_state(){
   
   if (current_state==0){
-    Serial.print(", c:");
-    Serial.print(current_state);
-    Serial.println();
+    //Serial.print(", c:");
+    //Serial.print(current_state);
+    //Serial.println();
     if (!check_button1_state()){
       check_button2_state();
     }
@@ -201,6 +248,8 @@ void check_current_state(){
 
 void loop() {
   // put your main code here, to run repeatedly:
+  Serial.println(digitalRead(2));
+  Serial.print(digitalRead(3));
   current_time=millis();
   check_buttons();
   check_current_state();
