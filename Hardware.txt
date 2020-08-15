@@ -1,0 +1,10 @@
+The traffic light uses a digital distance sensor to detect if the button is pressed. 
+
+My setup uses:
+Arduino Uno
+Red and green LEDs as well as transistor (BC337)
+Yellow LED for sensor indicator 
+220ogm resisitors for the LEDs
+USB cable and phone charger (5v, 1A)
+A digital distance sensor, GP2Y0D810Z0F.
+
