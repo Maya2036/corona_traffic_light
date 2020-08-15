@@ -1,4 +1,4 @@
-/*Traffic light to control the flow of people. Uses HC-SRO4 to trigger green light for people*/
+/*Traffic light to control the flow of people. Uses HC-SRO4 to trigger green light for people. Default is red on both until sensor is triggered*/
 
 //pin setup
 #define ECHO2_PIN 2
@@ -19,10 +19,7 @@
 #define ON_TIME 10*1000 // how long period light should stay green after button is pressed (milliseconds)
 
 //variables
-//int button1_pressed=0;
-//int button2_pressed=0;
-
-/* -1  delay mode
+/* -1  delay mode (like red-yellow light for traffic light. Happens after each green light)
  *  0  both red
  *  1  led1 green, led2 red 
  *  2  led1 red, led2 green
@@ -32,22 +29,18 @@ int current_state=0 ;
 /*  0   none next
  *  1   led1 will be green next
  *  2   led2 will be green next 
- *  12  led1 then led2
+ *  12  led1 then led2 
  *  21  led2 then led1
  */
-int button_state=0;
+int button_state=0; //(to be able to remember which light is next in the queue)
 
 unsigned long current_time;
 unsigned long button_pressed_time;
 
+int output_pin_list [9]={TRIG1_PIN, TRIG2_PIN, Y1_PIN, Y2_PIN, GREEN1_PIN, RED1_PIN, GREEN2_PIN, RED2_PIN}; //to simplify pin setup
 
-int output_pin_list [9]={TRIG1_PIN, TRIG2_PIN, Y1_PIN, Y2_PIN, GREEN1_PIN, RED1_PIN, GREEN2_PIN, RED2_PIN};
 
 void setup() {
-
-  Serial.begin(9600);
-  
-  // put your setup code here, to run once:
   pinMode(ECHO1_PIN, INPUT);
   pinMode(ECHO2_PIN, INPUT);
 
@@ -55,20 +48,22 @@ void setup() {
     pinMode(i, OUTPUT);
     digitalWrite(i, LOW);
   }
+  
   digitalWrite(RED1_PIN, HIGH);
   digitalWrite(RED2_PIN, HIGH);
 }
 
 
-int distance(int sensor=1){
+int distance(int sensor=1){ //read distance from sensor
   //default read sensor 1.
   int trig=TRIG1_PIN;
   int echo=ECHO1_PIN;
-  if (sensor!=1){
+  if (sensor!=1){ //sensor2
     trig=TRIG2_PIN;
     echo=ECHO2_PIN;
-    }
-  
+  }
+
+  //code from https://www.makerguides.com/hc-sr04-arduino-tutorial/
   // Clear the trigPin by setting it LOW:
   digitalWrite(trig, LOW);
   delayMicroseconds(5);
@@ -84,9 +79,8 @@ int distance(int sensor=1){
 }
 
 
-void check_buttons(){
+void check_buttons(){ //chech if sensor triggered
   if (distance(1)<TRIGGER_DISTANCE){
-    //button1_pressed=true;
     if (button_state==0){
       button_state=1;
       digitalWrite(Y1_PIN, HIGH);
@@ -109,11 +103,9 @@ void check_buttons(){
     }
   delay(200);
   }
-  Serial.print("B: ");
-  Serial.print(button_state);
 }
 
-bool check_button1_state(){
+bool check_button1_state(){ //check if led1 is next by reading the button_state and run appropriate code if thats the case 
   if (button_state==1){
     current_state=1;
     button_state=0;
@@ -134,7 +126,7 @@ bool check_button1_state(){
   }
   else return false;
 }
-bool check_button2_state(){
+bool check_button2_state(){ //check if led2 is next by reading the button_state and run appropriate code if thats the case 
   if (button_state==2){
     current_state=2;
     button_state=0;
@@ -156,55 +148,45 @@ bool check_button2_state(){
   else return false;
 }
 
-void check_current_state(){
-  
-  if (current_state==0){
-    Serial.print(", c:");
-    Serial.print(current_state);
-    Serial.println();
+void check_current_state(){ //read current_state and button_state to decide what to do  
+  if (current_state==0){ //default (both red)
     if (!check_button1_state()){
       check_button2_state();
     }
   }
-    else if (current_state==1){
-      if ((current_time-button_pressed_time)>ON_TIME){
-        if (!check_button1_state()){
-          current_state=-1;
-          button_pressed_time=current_time;
-          digitalWrite(RED1_PIN, HIGH);
-          //digitalWrite(RED2_PIN, HIGH);
-          digitalWrite(GREEN1_PIN, LOW);
-          //digitalWrite(GREEN2_PIN, LOW);
-        }
+  else if (current_state==1){ //button1 pressed and led1t is now green 
+    if ((current_time-button_pressed_time)>ON_TIME){
+      if (!check_button1_state()){ //if next up is also led1 then skip delay and take a new period with green
+        current_state=-1;
+        button_pressed_time=current_time;
+        digitalWrite(RED1_PIN, HIGH);
+        digitalWrite(GREEN1_PIN, LOW);
       }
-     }
-    else if (current_state==2){
-      if ((current_time-button_pressed_time)>ON_TIME){
-        if (!check_button2_state()){
-          current_state=-1;
-          button_pressed_time=current_time;
-          //digitalWrite(RED1_PIN, HIGH);
-          digitalWrite(RED2_PIN, HIGH);
-          //digitalWrite(GREEN1_PIN, LOW);
-          digitalWrite(GREEN2_PIN, LOW);
-        }
+    }
+   }
+  else if (current_state==2){ //button1 pressed and led2 is now green 
+    if ((current_time-button_pressed_time)>ON_TIME){
+      if (!check_button2_state()){ //if next up is also led2 then skip delay and take a new period with green
+        current_state=-1;
+        button_pressed_time=current_time;
+        digitalWrite(RED2_PIN, HIGH);
+        digitalWrite(GREEN2_PIN, LOW);
       }
-     }
-    else if (current_state==-1){
-      if ((current_time-button_pressed_time)>DELAY_TIME){ 
-        current_state=0; 
-      }
-    }  
-  }
+    }
+   }
+  else if (current_state==-1){ //delay state 
+    if ((current_time-button_pressed_time)>DELAY_TIME){ 
+      current_state=0; 
+    }
+  }  
+}
 
 
 
 void loop() {
-  // put your main code here, to run repeatedly:
   current_time=millis();
   check_buttons();
   check_current_state();
   delay(300);
-
 }
   
